@@ -61,6 +61,7 @@ class ChaliceTestCase(unittest.TestCase):
     def test_aws_access(self):
         s3 = boto3.client('s3')
         response = s3.list_buckets()
+        assert response is not None
 
 
 if __name__ == '__main__':
