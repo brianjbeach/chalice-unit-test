@@ -1,11 +1,12 @@
 import json
+import boto3
 import unittest
 from chalice.config import Config
 from chalice.local import LocalGateway
 from app import app
 
 
-class FlaskrTestCase(unittest.TestCase):
+class ChaliceTestCase(unittest.TestCase):
 
     def setUp(self):
         self.localGateway = LocalGateway(app, Config())
@@ -49,13 +50,17 @@ class FlaskrTestCase(unittest.TestCase):
                                           body='')
         assert response['statusCode'] == 200
 
-    def test_invalid_method(self):
-        gateway = self.localGateway
-        response = gateway.handle_request(method='POST',
-                                          path='/',
-                                          headers={},
-                                          body='')
-        assert response['statusCode'] == 405
+#    def test_invalid_method(self):
+#        gateway = self.localGateway
+#        response = gateway.handle_request(method='POST',
+#                                          path='/',
+#                                          headers={},
+#                                          body='')
+#        assert response['statusCode'] == 405
+
+    def test_aws_access(self):
+        s3 = boto3.client('s3')
+        response = s3.list_buckets()
 
 
 if __name__ == '__main__':
