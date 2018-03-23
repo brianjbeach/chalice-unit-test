@@ -209,6 +209,8 @@ My **buildspec.yml** contains two commands. The first installs chalice and the s
 
 After a few minutes your build should finish successfully. If it does not, you can scroll down to the Build logs section to debug it. 
 
+*NOTE: It is important to remember that your unit tests are running in local mode in a container launched by the CodeBuild service rather than deploying resources to API Gateway and Lambda. The chalice local command does not assume the role associated with your lambda function. Therefore, if your project requires access to AWS services (e.g. S3 or DynamoDB) you’ll need to assign the required permissions to the [CodeBuild Service Role](https://docs.aws.amazon.com/codebuild/latest/userguide/setting-up.html?icmpid=docs_acb_console#setting-up-service-role) so your unit tests have access to the required resources.*
+
 ## Conclusion 
 
 Chalice allows you to quickly create and deploy serverless applications. In addition, Chalice's Local Mode allows you to easily create unit tests for your projects. Finally, AWS CodeBuild allows you automate your tests to ensure your application is tested regularly. 
