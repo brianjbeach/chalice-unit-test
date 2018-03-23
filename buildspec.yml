@@ -5,7 +5,7 @@ phases:
     commands:
       - echo Build started on `date`
       - pip install -r requirements_test.txt
-      - pytest 
+      - pytest --pep8 --flakes  
   post_build:
     commands:
       - echo Build completed on `date`
