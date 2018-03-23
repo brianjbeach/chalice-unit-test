@@ -1,0 +1,6 @@
+.chalice/deployments/
+.chalice/venv/
+.pytest_cache/
+__pycache__/
+.coverage
+*.pyc
