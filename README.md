@@ -4,10 +4,10 @@ Chalice is a python serverless microframework for AWS that allows you to quickly
 
 ## Creating a New Project
 
-Let's begin by creating a new Chalice project using the **chalice** command line. 
+Let's begin by creating a new Chalice project using the **chalice** command line. *Note: You might want to create a [virtual environemnt](https://virtualenv.pypa.io/en/stable/) to run this tutorial.*
 
 ```
-$ pip install chalice
+$ pip install chalice 
 $ chalice new-project helloworld && cd helloworld
 $ cat app.py
 ```
@@ -59,7 +59,13 @@ Local mode is great, but we want to automate testing to ensure all our tests run
 
 ## Writing a Unit Test
 
-**pytest** is a framework that makes it easy to write unit tests. I'll add a new module to my project called app_test.py with the following content.
+**pytest** is a framework that makes it easy to write unit tests. If you don't already have **pytest** installed, you can install it using pip.
+
+```
+$ pip install pytest
+```
+
+I'll add a new module to my project called app_test.py with the following content.
 
 ```
 import json
@@ -96,7 +102,7 @@ Next I have a single test that submits a GET request to our application and veri
 $ pytest
 ========================= test session starts ========================
 platform linux2 -- Python 2.7.12, pytest-3.4.2, py-1.5.3, pluggy-0.6.0
-rootdir: /home/ec2-user/chalice-unit-test, inifile:
+rootdir: /home/ec2-user/helloworld, inifile:
 plugins: pep8-1.0.6, flakes-2.0.0, cov-2.5.1
 collected 1 item
 
@@ -136,32 +142,19 @@ Unlike the previous functions, **test_users** uses the POST verb rather than GET
         assert actual == expected
 ```
 
-We should always include a few tests that we expect to fail to ensure the application responds as we expect. In this example, I am submitting a request to an invalid URI. Notice that I have marked the class with the **expectedFailure** decorator to tell pytest that we expect this test to fail. pyTest will now fail if this function succeeds. 
-
-```
-    @unittest.expectedFailure
-    def test_invalid_path(self):
-        gateway = self.localGateway
-        response = gateway.handle_request(method='GET',
-                                          path='/fake/path',
-                                          headers={},
-                                          body='')
-        assert response['statusCode'] == 200
-```
-
-Now when we run pytest, all four tests run with 3 passing and 1 expected failure (xfailed).
+Now when we run pytest, our three tests run with all 3 passing.
 
 ```
 $ pytest
 ========================= test session starts ========================
 platform linux2 -- Python 2.7.12, pytest-3.4.2, py-1.5.3, pluggy-0.6.0
-rootdir: /home/ec2-user/chalice-unit-test, inifile:
+rootdir: /home/ec2-user/helloworld, inifile:
 plugins: pep8-1.0.6, flakes-2.0.0, cov-2.5.1
 collected 4 items
 
-app_test.py ..x.                                                [100%]
+app_test.py ...                                                 [100%]
 
-================ 3 passed, 1 xfailed in 0.05 seconds =================
+====================== 3 passed in 0.05 seconds ======================
 ```
 
 ## Automating Testing with CodeBuild
@@ -207,7 +200,7 @@ My **buildspec.yml** contains two commands. The first installs chalice and the s
 
 7) Click **Continue** and then **Save and Build** and finally **Start Build**.
 
-After a few minutes your build should finish successfully. If it does not, you can scroll down to the Build logs section to debug it. 
+After a few minutes your build should finish successfully. If it does not, you can scroll down to the Build logs section to debug it.
 
 *NOTE: It is important to remember that your unit tests are running in local mode in a container launched by the CodeBuild service rather than deploying resources to API Gateway and Lambda. The chalice local command does not assume the role associated with your lambda function. Therefore, if your project requires access to AWS services (e.g. S3 or DynamoDB) you’ll need to assign the required permissions to the [CodeBuild Service Role](https://docs.aws.amazon.com/codebuild/latest/userguide/setting-up.html?icmpid=docs_acb_console#setting-up-service-role) so your unit tests have access to the required resources.*
 
