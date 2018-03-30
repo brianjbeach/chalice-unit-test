@@ -1,10 +1,12 @@
-# Writing Unit Tests for Chalice
+# Writing unit tests for Chalice
 
-Chalice is a python serverless microframework for AWS that allows you to quickly create and deploy applications that use Amazon API Gateway and AWS Lambda. In this blog post I discuss how to create unit tests for Chalice and automate testing with CodeBuild. I will use Chalice Local Mode to execute these tests without provisioning API Gateway and Lambda resources.
+[Chalice](http://chalice.readthedocs.io/en/latest/api.html) is a Python serverless microframework for AWS that enables you to quickly create and deploy applications that use [Amazon API Gateway](https://aws.amazon.com/api-gateway/) and [AWS Lambda](https://aws.amazon.com/lambda/). In this blog post, I discuss how to create unit tests for Chalice and automate testing with [AWS CodeBuild](https://aws.amazon.com/codebuild/). I'll use Chalice local mode to execute these tests without provisioning API Gateway and Lambda resources.
 
-## Creating a New Project
+## Creating a new project
 
-Let's begin by creating a new Chalice project using the **chalice** command line. *Note: You might want to create a [virtual environemnt](https://virtualenv.pypa.io/en/stable/) to run this tutorial.*
+Let's begin by creating a new Chalice project using the **chalice** command line. 
+
+*Note: You might want to create a [virtual environment](https://virtualenv.pypa.io/en/stable/) to d the following tasks in this post.*
 
 ```
 $ pip install chalice 
@@ -12,7 +14,7 @@ $ chalice new-project helloworld && cd helloworld
 $ cat app.py
 ```
 
-As you can see, this will create a simple application with a few sample functions. Notice that there are two functions, **hello_name** and **create_user**, that have been commented out in the sample code. Open app.py in a text editor and uncomment those lines. The complete application should look like this:
+As you can see, this creates a simple application with a few sample functions. Notice that there are two functions, **hello_name** and **create_user**, which are commented out in the sample code. Open app.py in a text editor and uncomment those lines. The complete application should look like this.
 
 ```
 from chalice import Chalice
@@ -39,25 +41,27 @@ def create_user():
     return {'user': user_as_json}
 ```
 
-## Chalice Local Mode
+## Chalice local mode
 
-As you develop your application, you may want to experiment locally before deploying your changes. You can use chalice local to spin up a local HTTP server like this: 
+As you develop your application, you can experiment locally before deploying your changes. You can use the **chalice local** command to spin up a local HTTP server, as follows. 
 
 ```
 $ chalice local
 Serving on 127.0.0.1:8000
 ```
 
-Now we can test our application using curl. *Note: You will need to start a second shell.*
+Now we can test our application using cURL. 
+
+*Note: You will need to start a second shell.*
 
 ```
 $ curl 127.0.0.1:8000
 {"hello": "world"}
 ```
 
-Local mode is great, but we want to automate testing to ensure all our tests run regularly. Next I'll create a python unit test to automate testing.
+Local mode is great, but we want to automate testing to ensure all our tests run regularly. Next, I'll create a Python unit test to automate testing.
 
-## Writing a Unit Test
+## Writing a unit test
 
 **pytest** is a framework that makes it easy to write unit tests. If you don't already have **pytest** installed, you can install it using pip.
 
@@ -65,7 +69,7 @@ Local mode is great, but we want to automate testing to ensure all our tests run
 $ pip install pytest
 ```
 
-I'll add a new module to my project called app_test.py with the following content.
+I'll add a new module tnamed app_test.py to my project, with the following content.
 
 ```
 import json
@@ -94,9 +98,9 @@ if __name__ == '__main__':
     unittest.main()
 ```
 
-Our module includes a new class called **ChaliceTestCase** that inherits from **TestCase**. The **startUp** function is called when the test starts. This is where we set up our environment. I programmatically create a local gateway to host our application. This is the equivalent of the **chalice local** command we ran earlier. 
+This module includes a new class named **ChaliceTestCase** that inherits from **TestCase**. The **startUp** function is called when the test starts. This is where we set up our environment. I programmatically create a local gateway to host our application. This is the equivalent of the **chalice local** command we ran earlier. 
 
-Next I have a single test that submits a GET request to our application and verifies that I receive a expected response. This is the equivalent of the **curl** command that we tested earlier. You execute the unit test with the **pytest** command. 
+Next, I have a single test that submits a GET request to our application and verifies that I receive an expected response. This is the equivalent of the **curl** command that we tested earlier. You execute the unit test with the **pytest** command. 
 
 ```
 $ pytest
@@ -111,9 +115,9 @@ app_test.py .                                                    [100%]
 ====================== 1 passed in 0.02 seconds ======================
 ```
 
-## Add Additional Tests
+## Adding tests
 
-Let's add a few more tests to validate the other functions in our project. **test_hello** expects to receive a name of the person to say hello to in the path. Here is a test case that passes "alice" and ensures response is correct.
+Let's add a few more tests to validate the other functions in our project. **test_hello** expects to receive a name of the person to say hello to in the path. Here is a test case that passes "alice" and ensures that the response is correct.
 
 ```
     def test_hello(self):
@@ -126,7 +130,7 @@ Let's add a few more tests to validate the other functions in our project. **tes
         assert json.loads(response['body']) == dict([('hello', 'alice')])
 ```
 
-Unlike the previous functions, **test_users** uses the POST verb rather than GET. POST requests require a body and a content-type header to tell Chalice what type of data you sending. 
+Unlike the previous functions, **test_users** uses the POST verb instead of GET. POST requests require a body and a content-type header to tell Chalice the type of data you're sending. 
 
 ```
     def test_users(self):
@@ -142,7 +146,7 @@ Unlike the previous functions, **test_users** uses the POST verb rather than GET
         assert actual == expected
 ```
 
-Now when we run pytest, our three tests run with all 3 passing.
+Now, when we run pytest, our three tests and all three pass.
 
 ```
 $ pytest
@@ -157,11 +161,11 @@ app_test.py ...                                                 [100%]
 ====================== 3 passed in 0.05 seconds ======================
 ```
 
-## Automating Testing with CodeBuild
+## Automating testing with CodeBuild
 
-Now that we have our test cases working we can automate testing with AWS CodeBuild. AWS CodeBuild is a fully managed build service that compiles source code, runs tests, and produces software packages that are ready to deploy.
+Now that we have our test cases working, we can automate testing with AWS CodeBuild. CodeBuild is a fully managed build service that compiles source code, runs tests, and produces software packages that are ready to deploy.
 
-Let's begin by adding a file called buildspec.yml to our project. A build spec is a collection of build commands and related settings, in YAML format, that AWS CodeBuild uses to run a build. Open **buildspec.yml** in a text editor and add the following content.  
+Let's begin by adding a file named buildspec.yml to our project. A build spec is a collection of build commands and related settings, in YAML format, that CodeBuild uses to run a build. Open **buildspec.yml** in a text editor and add the following content.  
 
 ```
 version: 0.2
@@ -178,32 +182,32 @@ phases:
 
 ```
 
-My **buildspec.yml** contains two commands. The first installs chalice and the second starts pytest. Now we can create a CodeBuild project. You will need to post your code someplace that CodeBuild can access it. I'm going to check my sample application into [GitHub](http://tbd). Now I can create a CodeBuild project.
+My **buildspec.yml** contains two commands. The first installs Chalice and the second starts pytest. Now we can create a CodeBuild project. You need to post your code in a location where CodeBuild can access it. I'm going to check my sample application into [GitHub](https://github.com/). Now I can create a CodeBuild project.
 
-1) Open the [AWS CodeBuild Console](https://console.aws.amazon.com/codebuild/home)
-2) Click the **New Project** button
-3) Name your project
+1) Open the [AWS CodeBuild console](https://console.aws.amazon.com/codebuild/home).
+2) Choose **New Project**.
+3) Name your project.
 
 ![](images/name.png)
 
-4) Under the Source section, tell CodeBuild where to find your project. I'm using GitHub.
+4) Under the **Source** section, tell CodeBuild where to find your project. I'm using GitHub.
 
-![TODO:Replace AWS samples repo](images/source.png)
+![](images/source.png)
 
-5) Under the Environment section, specify a Python 2.7 Runtime on Ubuntu.
+5) Under the **Environment** section, specify a Python 2.7 runtime version on Ubuntu.
 
 ![](images/environment.png) 
 
-6) Under Artifacts, set the Type to **No artifacts**
+6) Under the **Artifacts** section, set **Type** to **No artifacts**
 
 ![](images/artifacts.png) 
 
-7) Click **Continue** and then **Save and Build** and finally **Start Build**.
+7) Choose **Continue**, choose **Save and Build**, and then choose **Start Build**.
 
-After a few minutes your build should finish successfully. If it does not, you can scroll down to the Build logs section to debug it.
+After a few minutes your build should finish successfully. If it doesn't, you can scroll down to the Build logs section to debug it.
 
-*NOTE: It is important to remember that your unit tests are running in local mode in a container launched by the CodeBuild service rather than deploying resources to API Gateway and Lambda. The chalice local command does not assume the role associated with your lambda function. Therefore, if your project requires access to AWS services (e.g. S3 or DynamoDB) you’ll need to assign the required permissions to the [CodeBuild Service Role](https://docs.aws.amazon.com/codebuild/latest/userguide/setting-up.html?icmpid=docs_acb_console#setting-up-service-role) so your unit tests have access to the required resources.*
+*Note: Remember that your unit tests are running in local mode in a container launched by the CodeBuild service, rather than deploying resources to API Gateway and Lambda. Chalice local mode doesn't assume the role associated with your Lambda function. Therefore, if your project requires access to AWS services (e.g., [Amazon S3](https://aws.amazon.com/s3/) or [DynamoDB](https://aws.amazon.com/dynamodb/)) you need to assign the required permissions to the [CodeBuild Service Role](https://docs.aws.amazon.com/codebuild/latest/userguide/setting-up.html?icmpid=docs_acb_console#setting-up-service-role), so that your unit tests have access to the required resources.*
 
 ## Conclusion 
 
-Chalice allows you to quickly create and deploy serverless applications. In addition, Chalice's Local Mode allows you to easily create unit tests for your projects. Finally, AWS CodeBuild allows you automate your tests to ensure your application is tested regularly. 
+Using Chalice, you can quickly create and deploy serverless applications. In addition, Chalice's local mode enables you to easily create unit tests for your projects. Finally, using AWS CodeBuild you can automate your tests to ensure your application is tested regularly. 
