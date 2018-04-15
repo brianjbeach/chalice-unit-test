@@ -6,7 +6,7 @@
 
 Let's begin by creating a new Chalice project using the **chalice** command line. 
 
-*Note: You might want to create a [virtual environment](https://virtualenv.pypa.io/en/stable/) to d the following tasks in this post.*
+*Note: You might want to create a [virtual environment](https://virtualenv.pypa.io/en/stable/) to complete the tasks in this post.*
 
 ```
 $ pip install chalice 
@@ -14,7 +14,7 @@ $ chalice new-project helloworld && cd helloworld
 $ cat app.py
 ```
 
-As you can see, this creates a simple application with a few sample functions. Notice that there are two functions, **hello_name** and **create_user**, which are commented out in the sample code. Open app.py in a text editor and uncomment those lines. The complete application should look like this.
+As you can see, this creates a simple application with a few sample functions. Notice that there are two functions, **hello_name** and **create_user**, which are commented out in the sample code. Open **app.py** in a text editor and uncomment those lines. The complete application should look like this.
 
 ```
 from chalice import Chalice
@@ -69,38 +69,40 @@ Local mode is great, but we want to automate testing to ensure all our tests run
 $ pip install pytest
 ```
 
-I'll add a new module tnamed app_test.py to my project, with the following content.
+I'll add a new module named **app_test.py** to my project, with the following content.
 
 ```
 import json
-import unittest
-from chalice.config import Config
-from chalice.local import LocalGateway
+import pytest
 from app import app
 
 
-class ChaliceTestCase(unittest.TestCase):
+@pytest.fixture
+def gateway_factory():
+    from chalice.config import Config
+    from chalice.local import LocalGateway
 
-    def setUp(self):
-        self.localGateway = LocalGateway(app, Config())
+    def create_gateway(config=None):
+        if config is None:
+            config = Config()
+        return LocalGateway(app, config)
+    return create_gateway
 
-    def test_index(self):
-        gateway = self.localGateway
+
+class TestChalice(object):
+
+    def test_index(self, gateway_factory):
+        gateway = gateway_factory()
         response = gateway.handle_request(method='GET',
                                           path='/',
                                           headers={},
                                           body='')
         assert response['statusCode'] == 200
         assert json.loads(response['body']) == dict([('hello', 'world')])
-
-
-if __name__ == '__main__':
-    unittest.main()
 ```
+Let's examine the code. First, I defined a fixture named **gateway_factory**, that creates a new local gateway we can use in our test cases. This is the Python equivalent of the **chalice local** command line we ran earlier. *Note that **Config** and **LocalGateway** objects used inside the factory are private and may change in the future.* 
 
-This module includes a new class named **ChaliceTestCase** that inherits from **TestCase**. The **startUp** function is called when the test starts. This is where we set up our environment. I programmatically create a local gateway to host our application. This is the equivalent of the **chalice local** command we ran earlier. 
-
-Next, I have a single test that submits a GET request to our application and verifies that I receive an expected response. This is the equivalent of the **curl** command that we tested earlier. You execute the unit test with the **pytest** command. 
+Next, I defined new class named **TestChalice** with a single test named **test_index**. test_index submits a GET request to our application and verifies that I receive an expected response. This is the equivalent of the **curl** command that we tested earlier. You execute the unit test with the **pytest** command. 
 
 ```
 $ pytest
@@ -120,8 +122,8 @@ app_test.py .                                                    [100%]
 Let's add a few more tests to validate the other functions in our project. **test_hello** expects to receive a name of the person to say hello to in the path. Here is a test case that passes "alice" and ensures that the response is correct.
 
 ```
-    def test_hello(self):
-        gateway = self.localGateway
+    def test_hello(self, gateway_factory):
+        gateway = gateway_factory()
         response = gateway.handle_request(method='GET',
                                           path='/hello/alice',
                                           headers={},
@@ -133,8 +135,8 @@ Let's add a few more tests to validate the other functions in our project. **tes
 Unlike the previous functions, **test_users** uses the POST verb instead of GET. POST requests require a body and a content-type header to tell Chalice the type of data you're sending. 
 
 ```
-    def test_users(self):
-        gateway = self.localGateway
+    def test_users(self, gateway_factory):
+        gateway = gateway_factory()
         response = gateway.handle_request(method='POST',
                                           path='/users',
                                           headers={'Content-Type':
@@ -146,7 +148,7 @@ Unlike the previous functions, **test_users** uses the POST verb instead of GET.
         assert actual == expected
 ```
 
-Now, when we run pytest, our three tests and all three pass.
+Now, when we run pytest, our three tests are all run and all three pass.
 
 ```
 $ pytest
@@ -161,53 +163,8 @@ app_test.py ...                                                 [100%]
 ====================== 3 passed in 0.05 seconds ======================
 ```
 
-## Automating testing with CodeBuild
-
-Now that we have our test cases working, we can automate testing with AWS CodeBuild. CodeBuild is a fully managed build service that compiles source code, runs tests, and produces software packages that are ready to deploy.
-
-Let's begin by adding a file named buildspec.yml to our project. A build spec is a collection of build commands and related settings, in YAML format, that CodeBuild uses to run a build. Open **buildspec.yml** in a text editor and add the following content.  
-
-```
-version: 0.2
-
-phases:
-  build:
-    commands:
-      - echo Build started on `date`
-      - pip install chalice
-      - pytest 
-  post_build:
-    commands:
-      - echo Build completed on `date`
-
-```
-
-My **buildspec.yml** contains two commands. The first installs Chalice and the second starts pytest. Now we can create a CodeBuild project. You need to post your code in a location where CodeBuild can access it. I'm going to check my sample application into [GitHub](https://github.com/). Now I can create a CodeBuild project.
-
-1) Open the [AWS CodeBuild console](https://console.aws.amazon.com/codebuild/home).
-2) Choose **New Project**.
-3) Name your project.
-
-![](images/name.png)
-
-4) Under the **Source** section, tell CodeBuild where to find your project. I'm using GitHub.
-
-![](images/source.png)
-
-5) Under the **Environment** section, specify a Python 2.7 runtime version on Ubuntu.
-
-![](images/environment.png) 
-
-6) Under the **Artifacts** section, set **Type** to **No artifacts**
-
-![](images/artifacts.png) 
-
-7) Choose **Continue**, choose **Save and Build**, and then choose **Start Build**.
-
-After a few minutes your build should finish successfully. If it doesn't, you can scroll down to the Build logs section to debug it.
-
-*Note: Remember that your unit tests are running in local mode in a container launched by the CodeBuild service, rather than deploying resources to API Gateway and Lambda. Chalice local mode doesn't assume the role associated with your Lambda function. Therefore, if your project requires access to AWS services (e.g., [Amazon S3](https://aws.amazon.com/s3/) or [DynamoDB](https://aws.amazon.com/dynamodb/)) you need to assign the required permissions to the [CodeBuild Service Role](https://docs.aws.amazon.com/codebuild/latest/userguide/setting-up.html?icmpid=docs_acb_console#setting-up-service-role), so that your unit tests have access to the required resources.*
+Your tests can now be added to a continuous deployment (CD) pipeline. The pipeline can run tests on code changes and, if they pass, promote the new build to a testing stage. Chalice can generate a CloudFormation template that will create a starter CD pipeline. It contains a CodeCommit repo, a CodeBuild stage for packaging your chalice app, and a CodePipeline stage to deploy your application using CloudFormation. For more information see the **chalice generate-pipeline** command in the [Chalice Documentation](http://chalice.readthedocs.io/en/latest/topics/cd.html).
 
 ## Conclusion 
 
-Using Chalice, you can quickly create and deploy serverless applications. In addition, Chalice's local mode enables you to easily create unit tests for your projects. Finally, using AWS CodeBuild you can automate your tests to ensure your application is tested regularly. 
+Using Chalice, you can quickly create and deploy serverless applications. In addition, Chalice's local mode enables you to easily create unit tests for your projects. Finally, Chalice can generate a continuous deployment to automate testing. 

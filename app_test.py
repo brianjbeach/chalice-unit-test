@@ -1,17 +1,24 @@
 import json
-import unittest
-from chalice.config import Config
-from chalice.local import LocalGateway
+import pytest
 from app import app
 
 
-class ChaliceTestCase(unittest.TestCase):
+@pytest.fixture
+def gateway_factory():
+    from chalice.config import Config
+    from chalice.local import LocalGateway
 
-    def setUp(self):
-        self.localGateway = LocalGateway(app, Config())
+    def create_gateway(config=None):
+        if config is None:
+            config = Config()
+        return LocalGateway(app, config)
+    return create_gateway
 
-    def test_index(self):
-        gateway = self.localGateway
+
+class TestChalice(object):
+
+    def test_index(self, gateway_factory):
+        gateway = gateway_factory()
         response = gateway.handle_request(method='GET',
                                           path='/',
                                           headers={},
@@ -19,8 +26,8 @@ class ChaliceTestCase(unittest.TestCase):
         assert response['statusCode'] == 200
         assert json.loads(response['body']) == dict([('hello', 'world')])
 
-    def test_hello(self):
-        gateway = self.localGateway
+    def test_hello(self, gateway_factory):
+        gateway = gateway_factory()
         response = gateway.handle_request(method='GET',
                                           path='/hello/alice',
                                           headers={},
@@ -28,8 +35,8 @@ class ChaliceTestCase(unittest.TestCase):
         assert response['statusCode'] == 200
         assert json.loads(response['body']) == dict([('hello', 'alice')])
 
-    def test_users(self):
-        gateway = self.localGateway
+    def test_users(self, gateway_factory):
+        gateway = gateway_factory()
         response = gateway.handle_request(method='POST',
                                           path='/users',
                                           headers={'Content-Type':
@@ -39,16 +46,3 @@ class ChaliceTestCase(unittest.TestCase):
         expected = json.loads('{"user":["alice","bob"]}')
         actual = json.loads(response['body'])
         assert actual == expected
-
-    @unittest.expectedFailure
-    def test_invalid_path(self):
-        gateway = self.localGateway
-        response = gateway.handle_request(method='GET',
-                                          path='/fake/path',
-                                          headers={},
-                                          body='')
-        assert response['statusCode'] == 200
-
-
-if __name__ == '__main__':
-    unittest.main()
