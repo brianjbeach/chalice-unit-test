@@ -1,6 +1,6 @@
 # Writing unit tests for Chalice
 
-[Chalice](http://chalice.readthedocs.io/en/latest/api.html) is a Python serverless microframework for AWS that enables you to quickly create and deploy applications that use [Amazon API Gateway](https://aws.amazon.com/api-gateway/) and [AWS Lambda](https://aws.amazon.com/lambda/). In this blog post, I discuss how to create unit tests for Chalice and automate testing with [AWS CodeBuild](https://aws.amazon.com/codebuild/). I'll use Chalice local mode to execute these tests without provisioning API Gateway and Lambda resources.
+[Chalice](http://chalice.readthedocs.io/en/latest/api.html) is a Python serverless microframework for AWS that enables you to quickly create and deploy applications that use [Amazon API Gateway](https://aws.amazon.com/api-gateway/) and [AWS Lambda](https://aws.amazon.com/lambda/). In this blog post, I discuss how to create unit tests for Chalice. I'll use Chalice local mode to execute these tests without provisioning API Gateway and Lambda resources.
 
 ## Creating a new project
 
@@ -59,7 +59,7 @@ $ curl 127.0.0.1:8000
 {"hello": "world"}
 ```
 
-Local mode is great, but we want to automate testing to ensure all our tests run regularly. Next, I'll create a Python unit test to automate testing.
+Local mode is great for interactive testing, but we want to automate testing to ensure all our tests run regularly. Next, I'll create a Python unit test to automate testing.
 
 ## Writing a unit test
 
@@ -100,7 +100,7 @@ class TestChalice(object):
         assert response['statusCode'] == 200
         assert json.loads(response['body']) == dict([('hello', 'world')])
 ```
-Let's examine the code. First, I defined a fixture named **gateway_factory**, that creates a new local gateway we can use in our test cases. This is the Python equivalent of the **chalice local** command line we ran earlier. *Note that **Config** and **LocalGateway** objects used inside the factory are private and may change in the future.* 
+Let's examine the code. First, I defined a fixture named **gateway_factory**, that creates a new local gateway we can use in our test cases. This is the Python equivalent of the **chalice local** command line we ran earlier. *Note that the **Config** and **LocalGateway** objects used inside the factory are private and may change in the future.* 
 
 Next, I defined new class named **TestChalice** with a single test named **test_index**. test_index submits a GET request to our application and verifies that I receive an expected response. This is the equivalent of the **curl** command that we tested earlier. You execute the unit test with the **pytest** command. 
 
@@ -163,7 +163,7 @@ app_test.py ...                                                 [100%]
 ====================== 3 passed in 0.05 seconds ======================
 ```
 
-Your tests can now be added to a continuous deployment (CD) pipeline. The pipeline can run tests on code changes and, if they pass, promote the new build to a testing stage. Chalice can generate a CloudFormation template that will create a starter CD pipeline. It contains a CodeCommit repo, a CodeBuild stage for packaging your chalice app, and a CodePipeline stage to deploy your application using CloudFormation. For more information see the **chalice generate-pipeline** command in the [Chalice Documentation](http://chalice.readthedocs.io/en/latest/topics/cd.html).
+Your tests can now be added to a continuous deployment (CD) pipeline. The pipeline can run tests on code changes and, if they pass, promote the new build to a testing stage. Chalice can generate a CloudFormation template that will create a starter CD pipeline. It contains a CodeCommit repo, a CodeBuild stage for packaging your chalice app, and a CodePipeline stage to deploy your application using CloudFormation. For more information, see the **chalice generate-pipeline** command in the [Chalice Documentation](http://chalice.readthedocs.io/en/latest/topics/cd.html).
 
 ## Conclusion 
 
